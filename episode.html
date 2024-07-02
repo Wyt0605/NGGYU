@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小猪佩奇默写工具</title>
+    <link rel="stylesheet" href="/bootstrap/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container text-center">
+        <div>
+            <br>
+            <h3 id="archive-title"></h3>
+            <br>
+            <p id="archive-line"></p>
+            <div>
+                <textarea autofocus class="form-control" id="archive-line-answer" rows="4"></textarea>
+                <p id="errorMsg"></p>
+            </div>
+            <br>
+            <div>
+                <button type="button" id="PlayorPause" class="btn btn-primary btn-lg">播放</button>
+                <button type="button" id="goBack" class="btn btn-primary btn-lg">快退3秒</button>
+                <button type="button" id="goAhead" class="btn btn-primary btn-lg">快进3秒</button>
+            </div>
+            <br>
+            <div>
+                <button type="button" id="prompt" class="btn btn-primary btn-lg">提示（ctrl + ,）</button>
+                <button type="button" id="btnNext" class="btn btn-outline-primary">下一句</button>
+                <a href="index.html" class="btn btn-outline-danger">返 回</a>
+            </div>
+        </div>
+    </div>
+    <script src="/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let audio = document.createElement('audio');
+        let queryString  = window.location.search;
+        let URLParams = new URLSearchParams(queryString);
+        let e = URLParams.get('e');
+        let episode = e.padStart(2,'0');
+        audio.src = "mp3/" + episode + ".mp3";
+        let index = 0,data,dataAnswer;
+        fetch("/data/00.json")
+        .then((res)=>res.json())
+        .then((json)=>{
+            document.getElementById("archive-title").innerText = json[URLParams.get("e")-1]
+        });
+        fetch("/data/" + episode + ".json")
+        .then((res)=>res.json())
+        .then((json)=>{
+            document.getElementById("archive-line").innerText = json[index];
+            data = json;
+        });
+        fetch("/data/" + episode + "_2.json")
+        .then((res)=>res.json())
+        .then((json)=>{
+            dataAnswer = json;
+        });
+        window.onkeydown = function(event){
+            console.log(event.keyCode);
+            if(event.keyCode == 190){
+                if(index == data.length-1){
+                    return;
+                }
+                let answer = document.getElementById("archive-line-answer").value;
+                if(answer+'.' != dataAnswer[index]){
+                    return;
+                }
+                event.preventDefault();
+                document.getElementById("errorMsg").innerText = '';
+                document.getElementById("archive-line-answer").value = '';
+                document.getElementById("archive-line-answer").focus();
+                index++;
+                document.getElementById("archive-line").innerText = data[index];
+            }
+            if(event.ctrlKey && event.keyCode == 188){
+                document.getElementById("prompt").click();
+            }
+        }
+        document.getElementById("PlayorPause").addEventListener('click',function(){
+            if(document.getElementById("PlayorPause").innerText == "播放"){
+                audio.play();
+                document.getElementById("PlayorPause").innerText = "暂停"
+            }else{
+                audio.pause();
+                document.getElementById("PlayorPause").innerText = "播放"
+            }
+        });
+        document.getElementById("goAhead").addEventListener('click',function(){
+            audio.currentTime+=3;
+        });
+        document.getElementById("goBack").addEventListener('click',function(){
+            audio.currentTime-=3;
+        });
+        document.getElementById("prompt").addEventListener('click',function(){
+            document.getElementById("errorMsg").innerText = dataAnswer[index];
+        })
+        document.getElementById("btnNext").addEventListener('click',function () {
+            console.log("下一句");
+            if(index == data.length-1){
+                return;
+            }
+            let answer = document.getElementById("archive-line-answer").value;
+            if(answer != dataAnswer[index]){
+                return;
+            }
+            document.getElementById("errorMsg").innerText = '';
+            document.getElementById("archive-line-answer").value = '';
+            document.getElementById("archive-line-answer").focus();
+            index++;
+            document.getElementById("archive-line").innerText = data[index];
+        });
+    </script>
+</body>
+</html>
